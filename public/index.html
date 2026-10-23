@@ -1,9 +1,167 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#264f3d"><title>Brava — Agenda do barbeiro</title><link rel="stylesheet" href="./style.css"><script defer src="./native.js"></script><script defer src="./model.js"></script><script defer src="./app.js"></script></head>
-<body><header><a class="brand" href="./index.html">✂ <span>BRAVA<small>AGENDA DO BARBEIRO</small></span></a><span class="offline">● Offline</span></header><main>
-<section class="intro"><p class="eyebrow">SUA BARBEARIA, ORGANIZADA</p><h1>Bom trabalho.<br>Um corte de cada vez.</h1><p>Seus clientes e horários, sempre à mão.</p></section>
-<div id="storage-warning" class="warning" role="alert" hidden></div><p id="message" role="status" aria-live="polite"></p>
-<section class="panel"><div class="heading"><h2>Sua agenda</h2><button id="new-booking" class="primary" disabled>+ Agendar</button></div><div class="filters"><label>Data<input type="date" id="agenda-date" required></label><button id="today" class="secondary">Hoje</button><label>Exibir<select id="status-filter"><option value="all">Todos</option><option value="confirmed">Agendados</option><option value="completed">Concluídos</option><option value="cancelled">Cancelados</option></select></label></div><div class="stats"><div><strong id="stat-count">0</strong><span>agendados no dia</span></div><div><strong id="stat-done">0</strong><span>concluídos</span></div><div><strong id="stat-total">R$ 0,00</strong><span>valor concluído</span></div></div><div id="appointment-list"><p>Carregando agenda…</p></div></section>
-<section class="panel backup"><p class="eyebrow">SEUS DADOS FICAM COM VOCÊ</p><h2>Backup da agenda</h2><p>Salve uma cópia fora do app. Ao desinstalar ou limpar os dados, a agenda é apagada.</p><div class="actions"><button id="export" class="secondary" disabled>Salvar / compartilhar backup</button><button id="import" class="secondary" disabled>Restaurar backup</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div><p class="caption">O backup contém nomes e telefones dos clientes. Guarde em um local de confiança. A restauração substitui toda a agenda atual.</p></section><footer>Brava · Controle pessoal, sem conta e sem internet.<br>Atendimento de segunda a sábado, das 9h às 19h.<br>Valores dos serviços predefinidos nesta versão.</footer></main>
-<dialog id="editor"><form id="booking-form"><div class="heading"><h2 id="editor-title">Novo agendamento</h2><button type="button" id="close-editor" class="icon" aria-label="Fechar">×</button></div><label>Nome do cliente<input id="name" required maxlength="80" autocomplete="off" placeholder="Nome do cliente"></label><label>Telefone com DDD<input id="phone" required type="tel" maxlength="16" placeholder="(11) 99999-9999"></label><label>Serviço<select id="service" required></select></label><div class="fields"><label>Data<input id="date" type="date" required></label><label>Horário<select id="time" required></select></label></div><p class="caption">Horários ocupados ficam indisponíveis. Uma única agenda para o barbeiro.</p><p id="form-error" class="error" role="alert"></p><button class="primary full" id="save" type="submit">Salvar agendamento</button></form></dialog>
-</body></html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#264f3d" />
+    <title>Brava — Agenda do barbeiro</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script defer src="./native.js"></script>
+    <script defer src="./model.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./index.html"
+        >✂ <span>BRAVA<small>AGENDA DO BARBEIRO</small></span></a
+      ><button id="prices-open" class="secondary" disabled>
+        Editar preços
+      </button>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">SUA BARBEARIA, ORGANIZADA</p>
+        <h1>Bom trabalho.<br />Um corte de cada vez.</h1>
+        <p>Seus clientes e horários, sempre à mão.</p>
+      </section>
+      <div id="storage-warning" class="warning" role="alert" hidden></div>
+      <p id="message" role="status" aria-live="polite"></p>
+      <section class="panel">
+        <div class="heading">
+          <h2>Sua agenda</h2>
+          <button id="new-booking" class="primary" disabled>+ Agendar</button>
+        </div>
+        <div class="filters">
+          <label>Data<input type="date" id="agenda-date" required /></label
+          ><button id="today" class="secondary">Hoje</button
+          ><label
+            >Exibir<select id="status-filter">
+              <option value="all">Todos</option>
+              <option value="confirmed">Agendados</option>
+              <option value="completed">Concluídos</option>
+              <option value="cancelled">Cancelados</option>
+            </select></label
+          >
+        </div>
+        <div class="stats">
+          <div>
+            <strong id="stat-count">0</strong><span>agendados no dia</span>
+          </div>
+          <div><strong id="stat-done">0</strong><span>concluídos</span></div>
+          <div>
+            <strong id="stat-total">R$ 0,00</strong><span>valor concluído</span>
+          </div>
+        </div>
+        <div id="appointment-list"><p>Carregando agenda…</p></div>
+      </section>
+      <section class="panel backup">
+        <p class="eyebrow">SEUS DADOS FICAM COM VOCÊ</p>
+        <h2>Backup da agenda</h2>
+        <p>
+          Salve uma cópia fora do app. Ao desinstalar ou limpar os dados, a
+          agenda é apagada.
+        </p>
+        <div class="actions">
+          <button id="export" class="secondary" disabled>
+            Salvar / compartilhar backup</button
+          ><button id="import" class="secondary" disabled>
+            Restaurar backup</button
+          ><input
+            id="backup-file"
+            type="file"
+            accept=".json,application/json"
+            hidden
+          />
+        </div>
+        <p class="caption">
+          O backup contém nomes e telefones dos clientes. Guarde em um local de
+          confiança. A restauração substitui toda a agenda atual.
+        </p>
+      </section>
+      <footer>
+        Brava · Controle pessoal, sem conta e sem internet.<br />Atendimento de
+        segunda a sábado, das 9h às 19h.<br />Preços editáveis pelo
+        profissional.<br /><strong
+          >Desenvolvido por Elissandro Silva Polidoro</strong
+        >
+      </footer>
+    </main>
+    <dialog id="editor">
+      <form id="booking-form">
+        <div class="heading">
+          <h2 id="editor-title">Novo agendamento</h2>
+          <button
+            type="button"
+            id="close-editor"
+            class="icon"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >Nome do cliente<input
+            id="name"
+            required
+            maxlength="80"
+            autocomplete="off"
+            placeholder="Nome do cliente" /></label
+        ><label
+          >Telefone com DDD<input
+            id="phone"
+            required
+            type="tel"
+            maxlength="16"
+            placeholder="(11) 99999-9999" /></label
+        ><label>Serviço<select id="service" required></select></label
+        ><label
+          >Valor deste atendimento (R$)<input
+            id="booking-price"
+            type="number"
+            min="0"
+            max="100000"
+            step="0.01"
+            inputmode="decimal"
+            required
+        /></label>
+        <div class="fields">
+          <label>Data<input id="date" type="date" required /></label
+          ><label>Horário<select id="time" required></select></label>
+        </div>
+        <p class="caption">
+          Horários ocupados ficam indisponíveis. Uma única agenda para o
+          barbeiro.
+        </p>
+        <p id="form-error" class="error" role="alert"></p>
+        <button class="primary full" id="save" type="submit">
+          Salvar agendamento
+        </button>
+      </form>
+    </dialog>
+    <dialog id="prices-editor">
+      <form id="prices-form">
+        <div class="heading">
+          <h2>Preços dos serviços</h2>
+          <button
+            type="button"
+            id="prices-close"
+            class="icon"
+            aria-label="Fechar preços"
+          >
+            ×
+          </button>
+        </div>
+        <p class="caption">
+          Os novos preços valem para os próximos agendamentos. Atendimentos já
+          salvos mantêm o valor combinado.
+        </p>
+        <div id="price-fields"></div>
+        <p id="prices-error" class="error" role="alert"></p>
+        <button id="prices-save" class="primary full">Salvar preços</button>
+      </form>
+    </dialog>
+  </body>
+</html>

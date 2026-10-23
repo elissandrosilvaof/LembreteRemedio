@@ -1,20 +1,369 @@
-const $=s=>document.querySelector(s),M=BravaModel,services=M.services;
-const money=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-let bookings=[],editing=null,busy=false,healthy=false;
-const storage=window.BravaNative||{read:async()=>localStorage.getItem('brava-agenda-v1'),write:async v=>localStorage.setItem('brava-agenda-v1',v),exportBackup:async(text,filename)=>{const u=URL.createObjectURL(new Blob([text],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(u),10000);}};
-$('#agenda-date').value=M.localDate(new Date());
-$('#service').replaceChildren(...services.map(s=>new Option(`${s.name} · ${money(s.price)} · ${s.duration} min`,s.id)));
-function announce(text){$('#message').textContent=text;}
-async function persist(next){if(busy)throw Error('Aguarde o salvamento atual.');busy=true;try{await storage.write(JSON.stringify(next));bookings=next;healthy=true;$('#storage-warning').hidden=true;$('#new-booking').disabled=false;$('#export').disabled=false;render();}finally{busy=false;}}
-function render(){const date=$('#agenda-date').value,filter=$('#status-filter').value;const day=bookings.filter(b=>b.date===date);$('#stat-count').textContent=day.filter(b=>b.status==='confirmed').length;$('#stat-done').textContent=day.filter(b=>b.status==='completed').length;$('#stat-total').textContent=money(day.filter(b=>b.status==='completed').reduce((n,b)=>n+services.find(s=>s.id===b.service).price,0));const list=day.filter(b=>filter==='all'||b.status===filter).sort((a,b)=>a.time.localeCompare(b.time));const root=$('#appointment-list');root.replaceChildren();if(!list.length){const p=document.createElement('p');p.className='empty';p.textContent='Nenhum atendimento nesta seleção. Toque em + Agendar para começar.';root.append(p);}for(const b of list){const s=services.find(s=>s.id===b.service);const card=document.createElement('article');card.className='appointment';const hour=document.createElement('div');hour.className='hour';hour.textContent=b.time;const body=document.createElement('div');body.className='appointment-content';const title=document.createElement('h3');title.textContent=b.name;const detail=document.createElement('p');detail.textContent=`${s.name} · ${s.duration} min · ${money(s.price)}`;const phone=document.createElement('p');phone.textContent=b.phone;const badge=document.createElement('span');badge.className='badge '+b.status;badge.textContent={confirmed:'Agendado',completed:'Concluído',cancelled:'Cancelado'}[b.status];body.append(title,detail,phone,badge);if(b.status==='confirmed'){const actions=document.createElement('div');actions.className='actions';for(const [action,label] of [['edit','Editar'],['complete','Concluir'],['cancel','Cancelar']]){const btn=document.createElement('button');btn.className='secondary'+(action==='cancel'?' danger':'');btn.dataset.action=action;btn.dataset.id=b.id;btn.textContent=label;actions.append(btn);}body.append(actions);}card.append(hour,body);root.append(card);}}
-function candidate(time){return {id:editing||'new',date:$('#date').value,time,service:$('#service').value,status:'confirmed'};}
-function timeAvailable(t){const c=candidate(t);try{M.validateBooking({...c,name:'Cliente',phone:'11999999999'});}catch{return false;}return new Date(c.date+'T'+t+':00')>new Date()&&!bookings.some(b=>M.overlaps(c,b));}
-function slots(){const previous=$('#time').value;const options=[new Option('Selecione','')];for(let h=9;h<19;h++)for(const min of ['00','30']){const t=String(h).padStart(2,'0')+':'+min,ok=timeAvailable(t);const o=new Option(t+(ok?'':' — indisponível'),t);o.disabled=!ok;options.push(o);}$('#time').replaceChildren(...options);$('#time').value=timeAvailable(previous)?previous:'';}
-function openEditor(booking){editing=booking?.id||null;$('#booking-form').reset();$('#editor-title').textContent=editing?'Editar agendamento':'Novo agendamento';$('#form-error').textContent='';$('#date').min=M.localDate(new Date());$('#date').max='2100-12-31';$('#date').value=booking?.date||$('#agenda-date').value||M.localDate(new Date());$('#name').value=booking?.name||'';$('#phone').value=booking?.phone||'';$('#service').value=booking?.service||services[0].id;slots();if(booking&&timeAvailable(booking.time))$('#time').value=booking.time;$('#editor').showModal();}
-$('#new-booking').onclick=()=>openEditor();$('#close-editor').onclick=()=>$('#editor').close();$('#service').onchange=slots;$('#date').onchange=slots;$('#agenda-date').onchange=render;$('#status-filter').onchange=render;$('#today').onclick=()=>{$('#agenda-date').value=M.localDate(new Date());render();};
-$('#booking-form').onsubmit=async e=>{e.preventDefault();if(busy)return;$('#save').disabled=true;try{const b={id:editing||crypto.randomUUID(),name:$('#name').value.trim(),phone:$('#phone').value.replace(/\D/g,''),service:$('#service').value,date:$('#date').value,time:$('#time').value,status:'confirmed'};const next=M.saveBooking(bookings,b);await persist(next);$('#agenda-date').value=b.date;$('#status-filter').value='all';render();$('#editor').close();announce('Agendamento salvo no aparelho.');}catch(err){$('#form-error').textContent=err.message||'Não foi possível salvar.';}finally{$('#save').disabled=false;}};
-$('#appointment-list').onclick=async e=>{const btn=e.target.closest('button[data-action]');if(!btn||busy)return;const b=bookings.find(x=>x.id===btn.dataset.id);if(!b)return;const action=btn.dataset.action;if(action==='edit')return openEditor(b);if(!confirm(action==='cancel'?'Cancelar este agendamento?':'Marcar este atendimento como concluído?'))return;try{await persist(bookings.map(x=>x.id===b.id?{...x,status:action==='cancel'?'cancelled':'completed'}:x));announce(action==='cancel'?'Agendamento cancelado.':'Atendimento concluído.');}catch(err){announce('Não foi possível salvar: '+err.message);}};
-$('#export').onclick=async()=>{try{await storage.exportBackup(JSON.stringify({app:'brava-agenda',version:1,createdAt:new Date().toISOString(),bookings},null,2),`brava-backup-${M.localDate(new Date())}-${Date.now()}.json`);announce('Backup preparado. Guarde o arquivo fora do app.');}catch(err){announce('Backup não finalizado. Tente novamente: '+err.message);}};
-$('#import').onclick=()=>$('#backup-file').click();$('#backup-file').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>10*1024*1024)throw Error('O limite é 10 MB.');const next=M.parseBackup(await file.text());if(!confirm(`Restaurar ${next.length} agendamento(s)? Toda a agenda atual será substituída. Guarde um backup antes de continuar.`))return;await persist(next);announce('Backup restaurado com sucesso. Selecione a data desejada na agenda.');}catch(err){announce('Backup não restaurado: '+err.message);}finally{e.target.value='';}};
-async function init(){try{const raw=await storage.read();bookings=raw?M.validateAll(JSON.parse(raw)):[];healthy=true;$('#new-booking').disabled=false;$('#export').disabled=false;}catch(err){$('#storage-warning').hidden=false;$('#storage-warning').textContent='Não foi possível ler a agenda. Nenhum dado foi sobrescrito. Reinicie o app ou restaure um backup válido. '+err.message;}$('#import').disabled=false;render();}
+const $ = (s) => document.querySelector(s),
+  M = BravaModel,
+  services = M.services;
+const money = (n) =>
+  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+let bookings = [],
+  prices = M.defaultPrices(),
+  editing = null,
+  busy = false,
+  healthy = false;
+const storage = window.BravaNative || {
+  read: async () => localStorage.getItem("brava-agenda-v1"),
+  write: async (v) => localStorage.setItem("brava-agenda-v1", v),
+  exportBackup: async (text, filename) => {
+    const u = URL.createObjectURL(
+        new Blob([text], { type: "application/json" }),
+      ),
+      a = document.createElement("a");
+    a.href = u;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(u), 10000);
+  },
+};
+$("#agenda-date").value = M.localDate(new Date());
+function serviceOptions() {
+  const selected = $("#service").value;
+  $("#service").replaceChildren(
+    ...services.map(
+      (s) =>
+        new Option(
+          `${s.name} · ${money(prices[s.id])} · ${s.duration} min`,
+          s.id,
+        ),
+    ),
+  );
+  if (selected) $("#service").value = selected;
+}
+serviceOptions();
+function announce(text) {
+  $("#message").textContent = text;
+}
+async function persist(next, nextPrices = prices) {
+  if (busy) throw Error("Aguarde o salvamento atual.");
+  busy = true;
+  try {
+    next = M.validateAll(next);
+    nextPrices = M.validatePrices(nextPrices);
+    await storage.write(
+      JSON.stringify({ version: 2, bookings: next, prices: nextPrices }),
+    );
+    bookings = next;
+    prices = nextPrices;
+    serviceOptions();
+    healthy = true;
+    $("#storage-warning").hidden = true;
+    $("#new-booking").disabled = false;
+    $("#export").disabled = false;
+    $("#prices-open").disabled = false;
+    render();
+  } finally {
+    busy = false;
+  }
+}
+function render() {
+  const date = $("#agenda-date").value,
+    filter = $("#status-filter").value;
+  const day = bookings.filter((b) => b.date === date);
+  $("#stat-count").textContent = day.filter(
+    (b) => b.status === "confirmed",
+  ).length;
+  $("#stat-done").textContent = day.filter(
+    (b) => b.status === "completed",
+  ).length;
+  $("#stat-total").textContent = money(
+    day
+      .filter((b) => b.status === "completed")
+      .reduce((n, b) => n + b.price, 0),
+  );
+  const list = day
+    .filter((b) => filter === "all" || b.status === filter)
+    .sort((a, b) => a.time.localeCompare(b.time));
+  const root = $("#appointment-list");
+  root.replaceChildren();
+  if (!list.length) {
+    const p = document.createElement("p");
+    p.className = "empty";
+    p.textContent =
+      "Nenhum atendimento nesta seleção. Toque em + Agendar para começar.";
+    root.append(p);
+  }
+  for (const b of list) {
+    const s = services.find((s) => s.id === b.service);
+    const card = document.createElement("article");
+    card.className = "appointment";
+    const hour = document.createElement("div");
+    hour.className = "hour";
+    hour.textContent = b.time;
+    const body = document.createElement("div");
+    body.className = "appointment-content";
+    const title = document.createElement("h3");
+    title.textContent = b.name;
+    const detail = document.createElement("p");
+    detail.textContent = `${s.name} · ${s.duration} min · ${money(b.price)}`;
+    const phone = document.createElement("p");
+    phone.textContent = b.phone;
+    const badge = document.createElement("span");
+    badge.className = "badge " + b.status;
+    badge.textContent = {
+      confirmed: "Agendado",
+      completed: "Concluído",
+      cancelled: "Cancelado",
+    }[b.status];
+    body.append(title, detail, phone, badge);
+    if (b.status === "confirmed") {
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      for (const [action, label] of [
+        ["edit", "Editar"],
+        ["complete", "Concluir"],
+        ["cancel", "Cancelar"],
+      ]) {
+        const btn = document.createElement("button");
+        btn.className = "secondary" + (action === "cancel" ? " danger" : "");
+        btn.dataset.action = action;
+        btn.dataset.id = b.id;
+        btn.textContent = label;
+        actions.append(btn);
+      }
+      body.append(actions);
+    }
+    card.append(hour, body);
+    root.append(card);
+  }
+}
+function candidate(time) {
+  return {
+    id: editing || "new",
+    date: $("#date").value,
+    time,
+    service: $("#service").value,
+    status: "confirmed",
+  };
+}
+function timeAvailable(t) {
+  const c = candidate(t);
+  try {
+    M.validateBooking({ ...c, name: "Cliente", phone: "11999999999" });
+  } catch {
+    return false;
+  }
+  return (
+    new Date(c.date + "T" + t + ":00") > new Date() &&
+    !bookings.some((b) => M.overlaps(c, b))
+  );
+}
+function slots() {
+  const previous = $("#time").value;
+  const options = [new Option("Selecione", "")];
+  for (let h = 9; h < 19; h++)
+    for (const min of ["00", "30"]) {
+      const t = String(h).padStart(2, "0") + ":" + min,
+        ok = timeAvailable(t);
+      const o = new Option(t + (ok ? "" : " — indisponível"), t);
+      o.disabled = !ok;
+      options.push(o);
+    }
+  $("#time").replaceChildren(...options);
+  $("#time").value = timeAvailable(previous) ? previous : "";
+}
+function openEditor(booking) {
+  editing = booking?.id || null;
+  $("#booking-form").reset();
+  $("#editor-title").textContent = editing
+    ? "Editar agendamento"
+    : "Novo agendamento";
+  $("#form-error").textContent = "";
+  $("#date").min = M.localDate(new Date());
+  $("#date").max = "2100-12-31";
+  $("#date").value =
+    booking?.date || $("#agenda-date").value || M.localDate(new Date());
+  $("#name").value = booking?.name || "";
+  $("#phone").value = booking?.phone || "";
+  $("#service").value = booking?.service || services[0].id;
+  $("#booking-price").value = booking?.price ?? prices[$("#service").value];
+  slots();
+  if (booking && timeAvailable(booking.time)) $("#time").value = booking.time;
+  $("#editor").showModal();
+}
+$("#new-booking").onclick = () => openEditor();
+$("#close-editor").onclick = () => $("#editor").close();
+$("#service").onchange = () => {
+  $("#booking-price").value = prices[$("#service").value];
+  slots();
+};
+$("#date").onchange = slots;
+$("#agenda-date").onchange = render;
+$("#status-filter").onchange = render;
+$("#today").onclick = () => {
+  $("#agenda-date").value = M.localDate(new Date());
+  render();
+};
+$("#booking-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  $("#save").disabled = true;
+  try {
+    const b = {
+      price: Number($("#booking-price").value),
+      id: editing || crypto.randomUUID(),
+      name: $("#name").value.trim(),
+      phone: $("#phone").value.replace(/\D/g, ""),
+      service: $("#service").value,
+      date: $("#date").value,
+      time: $("#time").value,
+      status: "confirmed",
+    };
+    const next = M.saveBooking(bookings, b);
+    await persist(next);
+    $("#agenda-date").value = b.date;
+    $("#status-filter").value = "all";
+    render();
+    $("#editor").close();
+    announce("Agendamento salvo no aparelho.");
+  } catch (err) {
+    $("#form-error").textContent = err.message || "Não foi possível salvar.";
+  } finally {
+    $("#save").disabled = false;
+  }
+};
+$("#appointment-list").onclick = async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn || busy) return;
+  const b = bookings.find((x) => x.id === btn.dataset.id);
+  if (!b) return;
+  const action = btn.dataset.action;
+  if (action === "edit") return openEditor(b);
+  if (
+    !confirm(
+      action === "cancel"
+        ? "Cancelar este agendamento?"
+        : "Marcar este atendimento como concluído?",
+    )
+  )
+    return;
+  try {
+    await persist(
+      bookings.map((x) =>
+        x.id === b.id
+          ? { ...x, status: action === "cancel" ? "cancelled" : "completed" }
+          : x,
+      ),
+    );
+    announce(
+      action === "cancel" ? "Agendamento cancelado." : "Atendimento concluído.",
+    );
+  } catch (err) {
+    announce("Não foi possível salvar: " + err.message);
+  }
+};
+$("#export").onclick = async () => {
+  try {
+    await storage.exportBackup(
+      JSON.stringify(
+        {
+          app: "brava-agenda",
+          version: 2,
+          createdAt: new Date().toISOString(),
+          bookings,
+          prices,
+        },
+        null,
+        2,
+      ),
+      `brava-backup-${M.localDate(new Date())}-${Date.now()}.json`,
+    );
+    announce("Backup preparado. Guarde o arquivo fora do app.");
+  } catch (err) {
+    announce("Backup não finalizado. Tente novamente: " + err.message);
+  }
+};
+$("#import").onclick = () => $("#backup-file").click();
+$("#backup-file").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 10 * 1024 * 1024) throw Error("O limite é 10 MB.");
+    const restored = M.parseBackupData(await file.text()),
+      next = restored.bookings;
+    if (
+      !confirm(
+        `Restaurar ${next.length} agendamento(s)? Toda a agenda atual será substituída. Guarde um backup antes de continuar.`,
+      )
+    )
+      return;
+    await persist(next, restored.prices);
+    announce(
+      "Backup restaurado com sucesso. Selecione a data desejada na agenda.",
+    );
+  } catch (err) {
+    announce("Backup não restaurado: " + err.message);
+  } finally {
+    e.target.value = "";
+  }
+};
+async function init() {
+  try {
+    const raw = await storage.read();
+    const restored = raw
+      ? M.readState(JSON.parse(raw))
+      : { bookings: [], prices: M.defaultPrices() };
+    bookings = restored.bookings;
+    prices = restored.prices;
+    serviceOptions();
+    healthy = true;
+    $("#prices-open").disabled = false;
+    $("#new-booking").disabled = false;
+    $("#export").disabled = false;
+  } catch (err) {
+    $("#storage-warning").hidden = false;
+    $("#storage-warning").textContent =
+      "Não foi possível ler a agenda. Nenhum dado foi sobrescrito. Reinicie o app ou restaure um backup válido. " +
+      err.message;
+  }
+  $("#import").disabled = false;
+  render();
+}
+$("#prices-open").onclick = () => {
+  const root = $("#price-fields");
+  root.replaceChildren();
+  for (const s of services) {
+    const label = document.createElement("label");
+    label.textContent = s.name + " (R$)";
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "0";
+    input.max = "100000";
+    input.step = "0.01";
+    input.required = true;
+    input.inputMode = "decimal";
+    input.id = "price-" + s.id;
+    input.value = prices[s.id];
+    label.append(input);
+    root.append(label);
+  }
+  $("#prices-error").textContent = "";
+  $("#prices-editor").showModal();
+};
+$("#prices-close").onclick = () => $("#prices-editor").close();
+$("#prices-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  $("#prices-save").disabled = true;
+  try {
+    const next = Object.fromEntries(
+      services.map((s) => [s.id, Number($("#price-" + s.id).value)]),
+    );
+    await persist(bookings, next);
+    $("#prices-editor").close();
+    announce(
+      "Tabela de preços atualizada. Agendamentos anteriores mantêm seus valores.",
+    );
+  } catch (err) {
+    $("#prices-error").textContent = err.message;
+  } finally {
+    $("#prices-save").disabled = false;
+  }
+};
 init();

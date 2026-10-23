@@ -1,8 +1,18 @@
 # Brava — Agenda do barbeiro
 
-Aplicativo para um único barbeiro: cadastro de cliente e telefone, seleção de serviço, agenda por dia e status, edição, conclusão, cancelamento, total dos atendimentos concluídos e backup/restauração JSON. Funciona sem internet depois de instalado. Atendimento de segunda a sábado, 9h–19h, com intervalos de 30 minutos. Serviços e preços predefinidos.
+Aplicativo para um único barbeiro: cadastro de cliente e telefone, seleção de serviço, agenda por dia e status, edição, conclusão, cancelamento, total dos atendimentos concluídos e backup/restauração JSON. Funciona sem internet depois de instalado. Atendimento de segunda a sábado, 9h–19h, com intervalos de 30 minutos. Serviços predefinidos e preços editáveis pelo profissional.
 
 No Android, usa Capacitor 7 e Preferences (armazenamento privado do aplicativo). No navegador, usa localStorage. As agendas do navegador e do APK são independentes; transfira os dados pelo backup desta versão. Não migra automaticamente as reservas do demonstrativo anterior. Não há conta, servidor, sincronização, pagamentos ou notificações.
+
+## Preços dos serviços
+
+Use **Editar preços**, no topo da tela, para salvar sua tabela. Ao agendar, o valor sugerido é o preço atual do serviço e pode ser alterado para aquele atendimento. A tabela vale para novos agendamentos; os valores combinados de atendimentos já salvos são preservados. O total do dia soma os valores dos atendimentos concluídos.
+
+A versão Android é 1.1 (versionCode 2). Exporte um backup antes de atualizar e use a mesma chave de assinatura do APK instalado, preservando os dados. Não desinstale o app sem backup. Dados e backups antigos são aceitos, usando a tabela original quando não existe valor salvo por atendimento. Novos backups incluem tabela e valores individuais (formato versão 2) e exigem esta versão para restaurar.
+
+**Desenvolvido por Elissandro Silva Polidoro.**
+
+O app **Agenda em Dia** está separado na [branch agenda-em-dia](https://github.com/elissandrosilvaof/LembreteRemedio/tree/agenda-em-dia).
 
 ## Gerar um APK no Windows
 
