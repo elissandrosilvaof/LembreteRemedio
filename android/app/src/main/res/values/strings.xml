@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Brava Agenda</string>
+    <string name="title_activity_main">Brava Agenda</string>
+    <string name="package_name">br.com.brava.agenda</string>
+    <string name="custom_url_scheme">br.com.brava.agenda</string>
+</resources>
