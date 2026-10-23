@@ -1,9 +1,249 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#264f3d"><title>Brava — Agenda do barbeiro</title><link rel="stylesheet" href="./style.css"><script defer src="./native.js"></script><script defer src="./model.js"></script><script defer src="./app.js"></script></head>
-<body><header><a class="brand" href="./index.html">✂ <span>BRAVA<small>AGENDA DO BARBEIRO</small></span></a><span class="offline">● Offline</span></header><main>
-<section class="intro"><p class="eyebrow">SUA BARBEARIA, ORGANIZADA</p><h1>Bom trabalho.<br>Um corte de cada vez.</h1><p>Seus clientes e horários, sempre à mão.</p></section>
-<div id="storage-warning" class="warning" role="alert" hidden></div><p id="message" role="status" aria-live="polite"></p>
-<section class="panel"><div class="heading"><h2>Sua agenda</h2><button id="new-booking" class="primary" disabled>+ Agendar</button></div><div class="filters"><label>Data<input type="date" id="agenda-date" required></label><button id="today" class="secondary">Hoje</button><label>Exibir<select id="status-filter"><option value="all">Todos</option><option value="confirmed">Agendados</option><option value="completed">Concluídos</option><option value="cancelled">Cancelados</option></select></label></div><div class="stats"><div><strong id="stat-count">0</strong><span>agendados no dia</span></div><div><strong id="stat-done">0</strong><span>concluídos</span></div><div><strong id="stat-total">R$ 0,00</strong><span>valor concluído</span></div></div><div id="appointment-list"><p>Carregando agenda…</p></div></section>
-<section class="panel backup"><p class="eyebrow">SEUS DADOS FICAM COM VOCÊ</p><h2>Backup da agenda</h2><p>Salve uma cópia fora do app. Ao desinstalar ou limpar os dados, a agenda é apagada.</p><div class="actions"><button id="export" class="secondary" disabled>Salvar / compartilhar backup</button><button id="import" class="secondary" disabled>Restaurar backup</button><input id="backup-file" type="file" accept=".json,application/json" hidden></div><p class="caption">O backup contém nomes e telefones dos clientes. Guarde em um local de confiança. A restauração substitui toda a agenda atual.</p></section><footer>Brava · Controle pessoal, sem conta e sem internet.<br>Atendimento de segunda a sábado, das 9h às 19h.<br>Valores dos serviços predefinidos nesta versão.</footer></main>
-<dialog id="editor"><form id="booking-form"><div class="heading"><h2 id="editor-title">Novo agendamento</h2><button type="button" id="close-editor" class="icon" aria-label="Fechar">×</button></div><label>Nome do cliente<input id="name" required maxlength="80" autocomplete="off" placeholder="Nome do cliente"></label><label>Telefone com DDD<input id="phone" required type="tel" maxlength="16" placeholder="(11) 99999-9999"></label><label>Serviço<select id="service" required></select></label><div class="fields"><label>Data<input id="date" type="date" required></label><label>Horário<select id="time" required></select></label></div><p class="caption">Horários ocupados ficam indisponíveis. Uma única agenda para o barbeiro.</p><p id="form-error" class="error" role="alert"></p><button class="primary full" id="save" type="submit">Salvar agendamento</button></form></dialog>
-</body></html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#285f63" />
+    <title>Agenda em Dia</title>
+    <link rel="stylesheet" href="./style.css" />
+    <script defer src="./native.js"></script>
+    <script defer src="./model.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="./index.html"
+        ><span class="logo">✓</span
+        ><span
+          >Agenda em Dia<small
+            >SUA AGENDA PROFISSIONAL, SEMPRE À MÃO.</small
+          ></span
+        ></a
+      ><button
+        class="secondary"
+        id="profile-open"
+        disabled
+        aria-label="Configurar perfil"
+      >
+        Meu perfil
+      </button>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow" id="area-label">UM DIA MAIS LEVE COMEÇA AQUI</p>
+        <h1>Mais tempo para cuidar.<br />Mais tranquilidade para você.</h1>
+        <p id="welcome">
+          Sua rotina profissional organizada, mesmo sem internet.
+        </p>
+        <span class="offline">● No seu aparelho · Sem internet</span>
+      </section>
+      <div id="storage-warning" class="warning" role="alert" hidden></div>
+      <p id="message" role="status" aria-live="polite"></p>
+      <nav class="tabs" aria-label="Seções">
+        <button data-tab="agenda" class="active">Minha agenda</button
+        ><button data-tab="people" id="people-tab">Cadastros</button
+        ><button data-tab="backup">Backup</button>
+      </nav>
+      <section id="agenda" class="panel tab-view">
+        <div class="heading">
+          <h2>Seu dia, em ordem</h2>
+          <button id="new-booking" class="primary" disabled>+ Agendar</button>
+        </div>
+        <div class="filters">
+          <label>Data<input type="date" id="agenda-date" required /></label
+          ><button id="today" class="secondary">Hoje</button
+          ><label
+            >Exibir<select id="status-filter">
+              <option value="all">Todos</option>
+              <option value="confirmed">Agendados</option>
+              <option value="completed">Concluídos</option>
+              <option value="cancelled">Cancelados</option>
+            </select></label
+          >
+        </div>
+        <div class="stats">
+          <div><strong id="stat-count">0</strong><span>agendados</span></div>
+          <div><strong id="stat-done">0</strong><span>concluídos</span></div>
+          <div>
+            <strong id="stat-total">R$ 0,00</strong
+            ><span>valor dos concluídos</span>
+          </div>
+        </div>
+        <div id="appointment-list"><p>Carregando sua agenda…</p></div>
+      </section>
+      <section id="people" class="panel tab-view" hidden>
+        <div class="heading">
+          <h2 id="people-heading">Cadastros</h2>
+          <button id="new-person" class="primary" disabled>+ Cadastrar</button>
+        </div>
+        <label
+          >Buscar por nome ou telefone<input
+            id="search-person"
+            type="search"
+            placeholder="Digite para buscar"
+        /></label>
+        <div id="people-list"></div>
+      </section>
+      <section id="backup" class="panel backup tab-view" hidden>
+        <p class="eyebrow">SEUS DADOS, COM VOCÊ</p>
+        <h2>Uma cópia para ficar tranquilo</h2>
+        <p>
+          Exporte a agenda, os cadastros e seu perfil. Guarde o arquivo fora do
+          app para recuperar ao trocar de celular.
+        </p>
+        <div class="actions">
+          <button id="export" class="secondary" disabled>
+            Salvar / compartilhar backup</button
+          ><button id="import" class="secondary" disabled>
+            Restaurar backup</button
+          ><input
+            id="backup-file"
+            type="file"
+            accept=".json,application/json"
+            hidden
+          />
+        </div>
+        <p class="caption">
+          O backup contém nomes e telefones. Guarde em local de confiança.
+          Restaurar substitui todos os dados atuais. Desinstalar ou limpar os
+          dados do aplicativo apaga a agenda local.
+        </p>
+      </section>
+      <footer>
+        Agenda em Dia · Sua agenda profissional, sempre à mão.<br />Agenda
+        individual. Não inclui prontuário, lembretes ou aulas em grupo.<br /><strong
+          >Desenvolvido por Elissandro Silva Polidoro</strong
+        >
+      </footer>
+    </main>
+    <dialog id="editor">
+      <form id="booking-form">
+        <div class="heading">
+          <h2 id="editor-title">Novo agendamento</h2>
+          <button
+            type="button"
+            data-close="editor"
+            class="icon"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          ><span id="person-label">Paciente</span
+          ><select id="person" required></select></label
+        ><button type="button" class="text-button" id="quick-person">
+          + Cadastrar uma pessoa</button
+        ><label
+          >Tipo de atendimento<input
+            id="service"
+            required
+            maxlength="100"
+            list="service-options"
+            placeholder="Ex.: Sessão de RPG" /><datalist
+            id="service-options"
+          ></datalist
+        ></label>
+        <div class="fields">
+          <label
+            >Duração (minutos)<input
+              id="duration"
+              type="number"
+              min="5"
+              max="480"
+              step="1"
+              required /></label
+          ><label
+            >Valor (R$)<input
+              id="price"
+              type="number"
+              min="0"
+              max="100000"
+              step="0.01"
+              required
+              inputmode="decimal"
+          /></label>
+        </div>
+        <div class="fields">
+          <label>Data<input id="date" type="date" required /></label
+          ><label>Horário<input id="time" type="time" required /></label>
+        </div>
+        <p class="caption">
+          Você define os dias e horários. O app verifica conflitos conforme a
+          duração.
+        </p>
+        <p id="form-error" class="error" role="alert"></p>
+        <button class="primary full" id="save" type="submit">
+          Salvar agendamento
+        </button>
+      </form>
+    </dialog>
+    <dialog id="person-editor">
+      <form id="person-form">
+        <div class="heading">
+          <h2 id="person-title">Novo cadastro</h2>
+          <button
+            type="button"
+            data-close="person-editor"
+            class="icon"
+            aria-label="Fechar cadastro"
+          >
+            ×
+          </button>
+        </div>
+        <label
+          >Nome<input
+            id="person-name"
+            required
+            maxlength="80"
+            autocomplete="off" /></label
+        ><label
+          >Telefone com DDD (opcional)<input
+            id="person-phone"
+            type="tel"
+            maxlength="16"
+            placeholder="(11) 99999-9999"
+        /></label>
+        <p id="person-error" class="error" role="alert"></p>
+        <button id="person-save" class="primary full">Salvar cadastro</button>
+      </form>
+    </dialog>
+    <dialog id="profile-editor">
+      <form id="profile-form">
+        <div class="heading">
+          <h2>Seu perfil profissional</h2>
+          <button
+            type="button"
+            data-close="profile-editor"
+            class="icon"
+            aria-label="Fechar perfil"
+          >
+            ×
+          </button>
+        </div>
+        <p class="caption">
+          Escolha sua área para adaptar os nomes e as sugestões de atendimento.
+        </p>
+        <label
+          >Seu nome profissional<input
+            id="profile-name"
+            maxlength="80"
+            placeholder="Como prefere ser chamado(a)?" /></label
+        ><label
+          >Área de atuação<select id="profession" required>
+            <option value="">Selecione sua área</option>
+          </select></label
+        >
+        <p class="caption">
+          RPG também está disponível como atendimento na Fisioterapia. Mudar a
+          área preserva todos os cadastros e agendamentos.
+        </p>
+        <p id="profile-error" class="error" role="alert"></p>
+        <button id="profile-save" class="primary full">Salvar perfil</button>
+      </form>
+    </dialog>
+  </body>
+</html>

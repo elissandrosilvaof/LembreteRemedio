@@ -1,5 +1,5 @@
 {
-  "name": "barbearia-reserva",
+  "name": "agenda-em-dia",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -22,5 +22,6 @@
   "devDependencies": {
     "@capacitor/cli": "7.6.9",
     "esbuild": "0.28.2"
-  }
+  },
+  "author": "Elissandro Silva Polidoro"
 }

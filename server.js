@@ -9,4 +9,4 @@ http.createServer((req,res)=>{
   if(err){res.writeHead(500);return res.end('Erro ao carregar página');}
   res.setHeader('Content-Type',file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':'text/html; charset=utf-8');res.end(data);
  });
-}).listen(process.env.PORT || 3000,'0.0.0.0',()=>console.log('Barbearia iniciada na porta '+(process.env.PORT || 3000)));
+}).listen(process.env.PORT || 3000,'0.0.0.0',()=>console.log('Agenda em Dia iniciada na porta '+(process.env.PORT || 3000)));

@@ -1,13 +1,18 @@
-BRAVA - AGENDA DO BARBEIRO
+AGENDA EM DIA
+Sua agenda profissional, sempre a mao.
+Desenvolvido por Elissandro Silva Polidoro.
 
 ANDROID:
-1. Extraia todos os arquivos do ZIP.
-2. Abra Preparar-Android.bat (precisa de Node.js e internet).
-3. Aguarde o Android Studio abrir o projeto.
-4. Siga o passo a passo do README.md para gerar o APK.
+1. Extraia tudo em uma pasta nova, separada da barbearia.
+2. Execute Preparar-Android.bat.
+3. No Android Studio, escolha JVM 21 e espere sincronizar.
+4. Gere o APK pelo menu Build.
+5. O arquivo fica em android/app/build/outputs/apk/debug/app-debug.apk.
 
-WINDOWS:
-Abra Abrir-app.bat para testar no navegador.
+NO PRIMEIRO ACESSO:
+Escolha sua area no perfil e salve.
+Cadastre pacientes ou alunos e crie seus agendamentos.
+Defina tipo, duracao e valor por atendimento.
 
-Os dados ficam no aparelho. Use Salvar / compartilhar backup regularmente.
-A restauracao substitui a agenda inteira. Desinstalar apaga os dados locais.
+Exporte backups regularmente. Desinstalar apaga os dados locais.
+Leia o README.md para orientacoes de assinatura e distribuicao.

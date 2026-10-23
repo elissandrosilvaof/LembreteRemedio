@@ -1,4 +1,4 @@
-package br.com.brava.agenda;
+package br.com.agendaemdia.app;
 
 import com.getcapacitor.BridgeActivity;
 

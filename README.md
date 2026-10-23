@@ -1,31 +1,54 @@
-# Brava — Agenda do barbeiro
+# Agenda em Dia
 
-Aplicativo para um único barbeiro: cadastro de cliente e telefone, seleção de serviço, agenda por dia e status, edição, conclusão, cancelamento, total dos atendimentos concluídos e backup/restauração JSON. Funciona sem internet depois de instalado. Atendimento de segunda a sábado, 9h–19h, com intervalos de 30 minutos. Serviços e preços predefinidos.
+**Sua agenda profissional, sempre à mão.**
 
-No Android, usa Capacitor 7 e Preferences (armazenamento privado do aplicativo). No navegador, usa localStorage. As agendas do navegador e do APK são independentes; transfira os dados pelo backup desta versão. Não migra automaticamente as reservas do demonstrativo anterior. Não há conta, servidor, sincronização, pagamentos ou notificações.
+**Desenvolvido por Elissandro Silva Polidoro.**
 
-## Gerar um APK no Windows
+Agenda individual offline para Android. No primeiro acesso, escolha Fisioterapia, Psicologia, Natação, Pilates, Quiropraxia ou RPG. O app adapta os termos paciente/aluno e consulta/sessão/aula e sugere tipos de atendimento. RPG também aparece como modalidade na Fisioterapia. O aplicativo é uma agenda, sem prontuário, diagnóstico, pagamentos, notificações, aulas em grupo ou sincronização entre celulares.
 
-1. Instale Node.js 22 LTS ou superior e Android Studio.
-2. Baixe este repositório em **Code → Download ZIP** e **extraia tudo**. Não abra arquivos dentro do ZIP.
-3. Na pasta extraída, abra **Preparar-Android.bat**. Ele executa `npm ci`, compila as telas, sincroniza os plugins e abre a pasta `android` no Android Studio. A preparação precisa de internet.
-4. Se o Android Studio não abrir automaticamente, selecione **Open** e escolha a pasta **android** dentro do projeto.
-5. Aguarde a sincronização do Gradle. Aceite a instalação dos componentes solicitados. O projeto usa **Android SDK Platform 35**, Java/JDK **21** e Gradle **8.11.1**. Em **Settings → Build, Execution, Deployment → Build Tools → Gradle**, selecione um Gradle JDK compatível (21).
-6. No menu **Build**, selecione **Build Bundle(s) / APK(s) → Build APK(s)**. Dependendo da versão, aparece como **Generate App Bundles or APKs → Generate APKs**. Para instalação pessoal, selecione a variante **debug** em Build Variants.
-7. Ao concluir, clique em **locate** na notificação. O arquivo estará em `android/app/build/outputs/apk/debug/app-debug.apk`.
-8. Transfira o APK para o celular, abra-o e autorize a instalação por aquele aplicativo quando o Android solicitar. Requer Android 6 ou superior e Android System WebView atualizado.
+## Funcionalidades
 
-Alternativa no terminal do Android Studio, aberto na pasta `android`:
+- Perfil profissional, alterável sem apagar dados.
+- Cadastro e edição de pacientes/alunos, com telefone opcional e busca.
+- Agendamento com tipo de atendimento livre, duração de 5 a 480 minutos, data, horário e valor definidos pelo profissional.
+- Agenda de todos os dias da semana, sem restrição de horário comercial. O atendimento deve terminar até meia-noite; horários seguem o fuso do aparelho.
+- Bloqueio de sobreposição considerando toda a duração, edição, cancelamento e conclusão.
+- Quantidade de agendados/concluídos e soma dos valores dos concluídos no dia. Essa soma não é controle de recebimentos.
+- Backup JSON de perfil, cadastros e agenda, com restauração validada. Restaurar substitui todos os dados, após confirmação.
+
+É um app para **um profissional por instalação**, que pode selecionar sua área. Não é uma agenda compartilhada entre vários profissionais. Não há valores de atendimento predefinidos: o valor inicial é zero e deve ser ajustado pelo usuário.
+
+## Preservação da barbearia
+
+O Agenda em Dia está na branch **agenda-em-dia**. A branch **main** continua com a Barbearia Brava. O pacote Android `br.com.agendaemdia.app` e o armazenamento `agenda-em-dia-v1` são independentes; ambos os aplicativos podem ser instalados no mesmo celular. Backups da barbearia não são importados neste app.
+
+## Gerar APK no Windows
+
+1. Abra a branch [agenda-em-dia no GitHub](https://github.com/elissandrosilvaof/LembreteRemedio/tree/agenda-em-dia), clique **Code → Download ZIP** e extraia tudo em uma pasta nova.
+2. Instale Node.js 22 LTS ou superior e Android Studio, se ainda não tiver.
+3. Abra **Preparar-Android.bat** na pasta extraída. Ele instala as dependências com `npm ci`, compila as telas, sincroniza o projeto e abre o Android Studio. A preparação precisa de internet.
+4. Se o Android Studio não abrir, escolha **Open** e selecione a pasta **android** deste projeto.
+5. Confie no projeto e aguarde a sincronização. Use **JVM 21** se solicitado. O projeto usa SDK Platform **35** e Gradle **8.11.1**. Instale os componentes solicitados pelo Android Studio.
+6. Para uso pessoal/testes, selecione a variante **debug**. Vá em **Build → Generate App Bundles or APKs → Generate APKs** (em outras versões, **Build Bundle(s) / APK(s) → Build APK(s)**).
+7. O arquivo estará em `android/app/build/outputs/apk/debug/app-debug.apk`. Transfira ao celular e instale, autorizando a origem quando o Android solicitar. Requer Android 6 ou superior e Android System WebView atualizado.
+
+Alternativa no terminal aberto na pasta `android`:
 
 ```bat
 gradlew.bat assembleDebug
 ```
 
-O APK debug é assinado automaticamente para testes e uso pessoal. Para distribuir uma versão de produção, use **Build → Generate Signed Bundle / APK → APK**, crie e guarde sua chave de assinatura. Atualizações precisam do mesmo identificador e da mesma chave; não desinstale para atualizar sem antes exportar um backup. Nunca envie a chave ou senhas ao GitHub.
+## Distribuição comercial
 
-## Backup
+Para distribuir, gere um **APK de release assinado** em **Build → Generate Signed Bundle / APK → APK**; para Google Play, gere um **Android App Bundle (AAB)** pelo mesmo assistente. Crie e guarde a chave de assinatura e suas senhas fora do repositório. Atualizações precisam da mesma chave, do mesmo applicationId e de versionCode maior. Verifique os requisitos atuais da loja antes de publicar; eles podem exigir atualização do SDK alvo.
 
-Em **Salvar / compartilhar backup**, escolha onde guardar o JSON (Arquivos, Drive ou outro destino disponível). Guarde uma cópia fora do app. Em **Restaurar backup**, selecione um arquivo exportado por esta versão e confirme a substituição da agenda. Backups inválidos, duplicatas e conflitos são rejeitados antes de gravar. Os arquivos contêm dados dos clientes. A desinstalação ou limpeza dos dados apaga a agenda local; o backup automático do Android está desativado.
+A identificação do desenvolvedor está no rodapé do app e nos metadados do projeto. Não há licença comercial automática, cobrança, ativação, proteção contra cópia ou publicação em loja nesta versão. Não envie chaves ou senhas ao GitHub. As bibliotecas de terceiros mantêm suas próprias licenças.
+
+Antes de distribuir, valide o APK em aparelho real, incluindo reinicialização, persistência, modo avião, exportação pelo compartilhamento Android e restauração pelo seletor de arquivos. APK debug não substitui uma versão de produção assinada.
+
+## Dados e backup
+
+No Android, os dados ficam no armazenamento privado do app (Capacitor Preferences). No navegador, ficam no localStorage. São agendas independentes; um backup pode transferir os dados entre elas. A desinstalação/limpeza apaga os dados locais; o backup automático do Android está desativado. Exporte regularmente e mantenha a cópia fora do app. Os JSONs de backup contêm nomes e telefones e não são criptografados. O app não coleta anotações clínicas. Proteja o aparelho com o bloqueio do próprio Android.
 
 ## Desenvolvimento
 
@@ -36,10 +59,12 @@ npm run build
 npm start
 ```
 
-Abra a porta 3000. Para testar sem servidor, após o build abra `public/index.html`. O `Abrir-app.bat` faz isso no Windows. O APK inclui todos os arquivos e não baixa fontes ou telas externas.
+Abra a porta 3000. Para abrir sem servidor, use **Abrir-app.bat** ou `public/index.html` depois do build. Todos os recursos são locais; não há download de fontes ou telas.
 
-Após alterar as telas ou plugins, execute `npm run android:sync` **antes** de compilar no Android Studio. O projeto nativo é versionado; `node_modules`, arquivos compilados, APKs e configurações locais não são.
+Depois de mudanças, execute `npm run android:sync` antes de compilar o APK. Não versione node_modules, APKs, chaves ou local.properties.
 
-## Validação
+## Validação desta versão
 
-Testes automatizados do modelo cobrem conflitos, edição, horário de atendimento, datas, backups e horários passados. O fluxo web é validado separadamente. A integração nativa, o seletor de arquivos e o compartilhamento devem ser verificados em emulador/aparelho: cadastrar, reiniciar, editar, concluir, exportar, restaurar e usar em modo avião. Não considere o APK validado apenas por sincronizar o projeto.
+- Oito testes do modelo cobrem conflitos por duração, edição, cancelamento, datas, valores, vínculos, perfis e backup.
+- Fluxo web validado em Chromium: configuração inicial, cadastro rápido, agendamento, conflito, edição, conclusão, mudança de área, busca, backup/restauração e persistência; largura mobile e interações offline.
+- Build web e sincronização Capacitor executados. Compilação e comportamento nativos desta nova versão precisam de validação no Android Studio/aparelho. A validação do APK anterior da barbearia não valida este aplicativo.
