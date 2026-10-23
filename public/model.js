@@ -53,7 +53,7 @@
   const localDate = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const initial = () => ({
-    version: 1,
+    version: 2,
     profile: { name: "", profession: "" },
     people: [],
     bookings: [],
@@ -72,6 +72,34 @@
       throw Error("Informe telefone com DDD ou deixe em branco.");
     return { id, name, phone };
   }
+  const modalities = {
+    particular: "Particular",
+    plano: "Plano",
+    avaliacao: "Avaliação",
+    permuta: "Permuta",
+    nao_informado: "Não informado",
+  };
+  function details(b) {
+    const modality = b.modality === undefined ? "nao_informado" : b.modality;
+    if (!Object.hasOwn(modalities, modality))
+      throw Error("Modalidade inválida.");
+    const anamnesis = b.anamnesis === undefined ? "" : b.anamnesis;
+    if (typeof anamnesis !== "string" || anamnesis.length > 10000)
+      throw Error("A anamnese deve ter até 10.000 caracteres.");
+    return { modality, anamnesis };
+  }
+  function timestamp(value) {
+    if (value === undefined || value === null) return null;
+    if (
+      typeof value !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) ||
+      !Number.isFinite(Date.parse(value)) ||
+      new Date(value).toISOString() !== value
+    )
+      throw Error("Data de registro inválida.");
+    return value;
+  }
+  const dateLabel = (date) => date.split("-").reverse().join("/");
   function booking(b) {
     if (!b || typeof b !== "object") throw Error("Agendamento inválido.");
     const id = text(b.id, 100, "Identificador"),
@@ -109,6 +137,9 @@
       duration: b.duration,
       price: b.price,
       status: b.status,
+      ...details(b),
+      createdAt: timestamp(b.createdAt),
+      updatedAt: timestamp(b.updatedAt),
     };
   }
   const minutes = (b) => +b.time.slice(0, 2) * 60 + +b.time.slice(3);
@@ -125,7 +156,7 @@
   function validate(data) {
     if (
       !data ||
-      data.version !== 1 ||
+      ![1, 2].includes(data.version) ||
       !data.profile ||
       !Array.isArray(data.people) ||
       !Array.isArray(data.bookings) ||
@@ -170,30 +201,119 @@
     }
     if (bookings.length && !profile.profession)
       throw Error("Escolha sua área profissional.");
-    return { version: 1, profile, people, bookings };
+    return { version: 2, profile, people, bookings };
   }
   function saveBooking(state, b, now = new Date()) {
     b = booking(b);
+    const previous = state.bookings.find((x) => x.id === b.id);
     if (!state.profile.profession)
       throw Error("Escolha sua área profissional.");
     if (
       b.status === "confirmed" &&
-      new Date(b.date + "T" + b.time + ":00") <= now
+      new Date(b.date + "T" + b.time + ":00") <= now &&
+      !(
+        previous?.status === "confirmed" &&
+        previous.date === b.date &&
+        previous.time === b.time
+      )
     )
       throw Error("Escolha um horário futuro.");
+    b.createdAt = previous ? timestamp(previous.createdAt) : now.toISOString();
+    b.updatedAt = now.toISOString();
     return validate({
       ...state,
       bookings: [...state.bookings.filter((x) => x.id !== b.id), b],
     });
   }
+  function updateDetails(state, id, data, now = new Date()) {
+    if (!state.bookings.some((b) => b.id === id))
+      throw Error("Atendimento não encontrado.");
+    const patch = details(data);
+    return validate({
+      ...state,
+      bookings: state.bookings.map((b) =>
+        b.id === id ? { ...b, ...patch, updatedAt: now.toISOString() } : b,
+      ),
+    });
+  }
+  function buildReport(state, filters) {
+    const {
+      period,
+      value,
+      personId = "all",
+      status = "all",
+      modality = "all",
+      includeNotes = false,
+    } = filters;
+    if (!["day", "month", "year"].includes(period))
+      throw Error("Período inválido.");
+    if (
+      typeof value !== "string" ||
+      (period === "year" && !/^(20\d{2}|2100)$/.test(value)) ||
+      (period === "month" && !/^(20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(value)) ||
+      (period === "day" &&
+        (!/^(20\d{2}|2100)-\d{2}-\d{2}$/.test(value) ||
+          localDate(new Date(value + "T12:00:00")) !== value))
+    )
+      throw Error("Informe um período válido.");
+    if (personId !== "all" && !state.people.some((p) => p.id === personId))
+      throw Error("Cadastro não encontrado.");
+    if (!["all", "confirmed", "completed", "cancelled"].includes(status))
+      throw Error("Status inválido.");
+    if (modality !== "all" && !Object.hasOwn(modalities, modality))
+      throw Error("Modalidade inválida.");
+    const people = new Map(state.people.map((p) => [p.id, p]));
+    const rows = state.bookings
+      .filter(
+        (b) =>
+          b.date.startsWith(value) &&
+          (personId === "all" || b.personId === personId) &&
+          (status === "all" || b.status === status) &&
+          (modality === "all" || b.modality === modality),
+      )
+      .map((b) => ({
+        ...b,
+        personName: people.get(b.personId).name,
+        phone: people.get(b.personId).phone,
+        anamnesis: includeNotes ? b.anamnesis : "",
+      }))
+      .sort(
+        (a, b) =>
+          a.personName.localeCompare(b.personName, "pt-BR") ||
+          a.personId.localeCompare(b.personId) ||
+          (a.date + a.time).localeCompare(b.date + b.time),
+      );
+    const completed = rows.filter((b) => b.status === "completed");
+    return {
+      profile: state.profile,
+      period,
+      value,
+      personLabel:
+        personId === "all" ? "Todos os cadastros" : people.get(personId).name,
+      status,
+      modality,
+      includeNotes: Boolean(includeNotes),
+      rows,
+      total: rows.length,
+      completed: completed.length,
+      cancelled: rows.filter((b) => b.status === "cancelled").length,
+      totalCompleted:
+        completed.reduce((n, b) => n + Math.round(b.price * 100), 0) / 100,
+    };
+  }
   function parseBackup(raw) {
     const d = JSON.parse(raw);
-    if (d?.app !== "agenda-em-dia" || d.version !== 1)
+    if (d?.app !== "agenda-em-dia" || ![1, 2].includes(d.version))
       throw Error("Escolha um backup do Agenda em Dia.");
     return validate(d.data);
   }
   const api = {
     professions,
+    modalities,
+    details,
+    dateLabel,
+    updateDetails,
+    buildReport,
     localDate,
     initial,
     person,

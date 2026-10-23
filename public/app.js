@@ -6,6 +6,7 @@ const money = (n) =>
 let state = M.initial(),
   editing = null,
   editingPerson = null,
+  notesId = null,
   busy = false,
   healthy = false;
 const storage = window.AgendaNative || {
@@ -44,7 +45,15 @@ function el(tag, text, cls) {
   return n;
 }
 function buttons() {
-  for (const id of ["new-booking", "new-person", "profile-open", "export"])
+  for (const id of [
+    "new-booking",
+    "new-person",
+    "profile-open",
+    "export",
+    "report-preview",
+    "report-pdf",
+    "report-csv",
+  ])
     $("#" + id).disabled = !healthy || busy;
   $("#import").disabled = busy;
 }
@@ -84,8 +93,13 @@ function render() {
     : "Sua rotina profissional organizada, mesmo sem internet.";
   renderAgenda();
   renderPeople();
+  reportOptions();
+  if (!$("#reports").hidden) renderReport();
 }
 function renderAgenda() {
+  $("#agenda-date-caption").textContent = $("#agenda-date").value
+    ? "Data: " + M.dateLabel($("#agenda-date").value)
+    : "Selecione uma data";
   const day = state.bookings.filter((b) => b.date === $("#agenda-date").value),
     filter = $("#status-filter").value;
   $("#stat-count").textContent = day.filter(
@@ -119,6 +133,7 @@ function renderAgenda() {
     body.append(
       el("h3", p.name),
       el("p", `${b.service} · ${b.duration} min · ${money(b.price)}`),
+      el("p", `${M.dateLabel(b.date)} · ${M.modalities[b.modality]}`),
     );
     if (p.phone) body.append(el("p", p.phone));
     body.append(
@@ -132,13 +147,15 @@ function renderAgenda() {
         "badge " + b.status,
       ),
     );
-    if (b.status === "confirmed") {
+    {
       const actions = el("div", undefined, "actions");
-      for (const [action, label] of [
+      const availableActions = [
         ["edit", "Editar"],
-        ["complete", "Concluir"],
-        ["cancel", "Cancelar"],
-      ]) {
+        ["notes", b.anamnesis ? "Ver Anamnese" : "Anamnese"],
+      ];
+      if (b.status === "confirmed")
+        availableActions.push(["complete", "Concluir"], ["cancel", "Cancelar"]);
+      for (const [action, label] of availableActions) {
         const btn = el(
           "button",
           label,
@@ -211,7 +228,10 @@ function openEditor(b) {
   $("#service").value = b?.service || terms().services[0] || "";
   $("#duration").value = b?.duration || terms().duration;
   $("#price").value = b?.price ?? 0;
-  $("#date").min = M.localDate(new Date());
+  $("#date").min = "2000-01-01";
+  $("#modality").value = b?.modality || "particular";
+  $("#anamnesis").value = b?.anamnesis || "";
+  $("#booking-status").value = b?.status || "confirmed";
   $("#date").max = "2100-12-31";
   const day = $("#agenda-date").value;
   $("#date").value =
@@ -233,7 +253,10 @@ function error(err) {
 document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.tab) tab(b.dataset.tab);
+  if (b.dataset.tab) {
+    tab(b.dataset.tab);
+    if (b.dataset.tab === "reports") renderReport();
+  }
   if (b.dataset.close) $("#" + b.dataset.close).close();
 });
 $("#new-booking").onclick = () => openEditor();
@@ -315,7 +338,9 @@ $("#booking-form").onsubmit = async (e) => {
       price: Number($("#price").value),
       date: $("#date").value,
       time: $("#time").value,
-      status: "confirmed",
+      status: $("#booking-status").value,
+      modality: $("#modality").value,
+      anamnesis: $("#anamnesis").value,
     };
     await persist(M.saveBooking(state, b));
     $("#agenda-date").value = b.date;
@@ -337,6 +362,7 @@ $("#appointment-list").onclick = async (e) => {
   if (!b) return;
   const action = btn.dataset.action;
   if (action === "edit") return openEditor(b);
+  if (action === "notes") return openNotes(b);
   if (
     !confirm(
       action === "cancel"
@@ -350,7 +376,11 @@ $("#appointment-list").onclick = async (e) => {
       ...state,
       bookings: state.bookings.map((x) =>
         x.id === b.id
-          ? { ...x, status: action === "cancel" ? "cancelled" : "completed" }
+          ? {
+              ...x,
+              status: action === "cancel" ? "cancelled" : "completed",
+              updatedAt: new Date().toISOString(),
+            }
           : x,
       ),
     });
@@ -367,7 +397,7 @@ $("#export").onclick = async () => {
       JSON.stringify(
         {
           app: "agenda-em-dia",
-          version: 1,
+          version: 2,
           createdAt: new Date().toISOString(),
           data: state,
         },
@@ -403,6 +433,182 @@ $("#backup-file").onchange = async (e) => {
     e.target.value = "";
   }
 };
+for (const id of ["modality", "notes-modality", "report-modality"])
+  for (const [value, label] of Object.entries(M.modalities))
+    $("#" + id).add(new Option(label, value));
+$("#report-value").value = M.localDate(new Date());
+function openNotes(b) {
+  notesId = b.id;
+  const p = state.people.find((p) => p.id === b.personId);
+  $("#notes-context").textContent =
+    `${p.name} · ${M.dateLabel(b.date)} às ${b.time} · ${b.service}`;
+  $("#notes-modality").value = b.modality;
+  $("#notes-text").value = b.anamnesis;
+  $("#notes-error").textContent = "";
+  const label = (v) =>
+    v
+      ? new Date(v).toLocaleString("pt-BR")
+      : "Não registrado na versão anterior";
+  $("#notes-timestamps").textContent =
+    `Criado em: ${label(b.createdAt)}. Última alteração: ${label(b.updatedAt)}.`;
+  $("#notes-editor").showModal();
+}
+$("#notes-form").onsubmit = async (e) => {
+  e.preventDefault();
+  if (busy) return;
+  $("#notes-save").disabled = true;
+  try {
+    await persist(
+      M.updateDetails(state, notesId, {
+        modality: $("#notes-modality").value,
+        anamnesis: $("#notes-text").value,
+      }),
+    );
+    $("#notes-editor").close();
+    announce("Anamnese e modalidade salvas neste atendimento.");
+  } catch (err) {
+    $("#notes-error").textContent = error(err);
+  } finally {
+    $("#notes-save").disabled = false;
+  }
+};
+function reportOptions() {
+  const selected = $("#report-person").value;
+  $("#report-person-label").textContent = terms().person;
+  $("#report-person").replaceChildren(
+    new Option("Todos no mesmo arquivo", "all"),
+    ...[...state.people]
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+      .map((p) => new Option(p.name + (p.phone ? " · " + p.phone : ""), p.id)),
+  );
+  $("#report-person").value = state.people.some((p) => p.id === selected)
+    ? selected
+    : "all";
+}
+function reportFilters() {
+  return {
+    period: $("#report-period").value,
+    value: $("#report-value").value,
+    personId: $("#report-person").value,
+    status: $("#report-status").value,
+    modality: $("#report-modality").value,
+    includeNotes: $("#report-notes").checked,
+  };
+}
+function renderReport() {
+  const root = $("#report-result");
+  root.replaceChildren();
+  $("#report-error").textContent = "";
+  try {
+    const report = M.buildReport(state, reportFilters());
+    const periodLabel =
+      report.period === "day"
+        ? M.dateLabel(report.value)
+        : report.period === "month"
+          ? report.value.split("-").reverse().join("/")
+          : report.value;
+    root.append(
+      el(
+        "p",
+        `Período: ${periodLabel} · ${report.personLabel}`,
+        "date-caption",
+      ),
+    );
+    root.append(
+      el(
+        "p",
+        `${report.total} atendimento(s) · ${report.completed} concluído(s) · ${report.cancelled} cancelado(s)`,
+      ),
+      el("p", "Valor dos concluídos: " + money(report.totalCompleted)),
+    );
+    root.append(
+      el(
+        "p",
+        "Valores de atendimentos não comprovam recebimento. Cancelados ficam fora do total concluído.",
+        "caption",
+      ),
+    );
+    for (const b of report.rows) {
+      const row = el("div", undefined, "report-row");
+      row.append(
+        el("strong", b.personName),
+        el(
+          "span",
+          `${M.dateLabel(b.date)} às ${b.time} · ${b.service} · ${M.modalities[b.modality]} · ${{ confirmed: "Agendado", completed: "Concluído", cancelled: "Cancelado" }[b.status]} · ${money(b.price)}`,
+        ),
+      );
+      root.append(row);
+    }
+    if (!report.rows.length)
+      root.append(el("p", "Nenhum atendimento para estes filtros.", "empty"));
+    return report;
+  } catch (err) {
+    $("#report-error").textContent = error(err);
+    return null;
+  }
+}
+$("#report-period").onchange = () => {
+  const period = $("#report-period").value,
+    input = $("#report-value"),
+    today = M.localDate(new Date());
+  input.type =
+    period === "day" ? "date" : period === "month" ? "month" : "number";
+  if (period === "year") {
+    input.min = "2000";
+    input.max = "2100";
+    input.step = "1";
+    input.value = today.slice(0, 4);
+  } else {
+    input.removeAttribute("min");
+    input.removeAttribute("max");
+    input.removeAttribute("step");
+    input.value = period === "day" ? today : today.slice(0, 7);
+  }
+  $("#report-value-label").textContent = {
+    day: "Dia",
+    month: "Mês e ano",
+    year: "Ano",
+  }[period];
+  renderReport();
+};
+$("#report-form").onsubmit = (e) => {
+  e.preventDefault();
+  renderReport();
+};
+for (const id of [
+  "report-value",
+  "report-person",
+  "report-modality",
+  "report-status",
+  "report-notes",
+])
+  $("#" + id).onchange = renderReport;
+for (const format of ["pdf", "csv"])
+  $("#report-" + format).onclick = async () => {
+    if (!$("#report-form").reportValidity()) return;
+    const report = renderReport();
+    if (!report) return;
+    const btn = $("#report-" + format);
+    btn.disabled = true;
+    try {
+      if (!window.AgendaReports)
+        throw Error(
+          "Execute a preparação do aplicativo para habilitar os relatórios.",
+        );
+      const suffix =
+        $("#report-person").value === "all" ? "todos" : "individual";
+      await window.AgendaReports[format](
+        report,
+        `agenda-relatorio-${report.value}-${suffix}-${Date.now()}.${format}`,
+      );
+      announce("Relatório preparado. Salve ou compartilhe o arquivo.");
+    } catch (err) {
+      $("#report-error").textContent =
+        "Não foi possível salvar o relatório: " + error(err);
+    } finally {
+      btn.disabled = !healthy;
+    }
+  };
 async function init() {
   try {
     const raw = await storage.read();

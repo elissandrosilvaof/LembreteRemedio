@@ -445,3 +445,67 @@ header > .secondary {
     font-size: 9px;
   }
 }
+
+textarea {
+  font: inherit;
+  display: block;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d8dfd1;
+  border-radius: 7px;
+  margin-top: 7px;
+  resize: vertical;
+  min-height: 110px;
+  max-width: 100%;
+}
+textarea:focus {
+  outline: 2px solid #91aa87;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.check input {
+  width: 20px;
+  min-height: 22px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.report-row {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.report-row strong {
+  display: block;
+  font-size: 14px;
+}
+#report-form {
+  margin-top: 22px;
+}
+#report-form label {
+  margin-bottom: 12px;
+}
+.tabs {
+  flex-wrap: wrap;
+}
+.tabs button {
+  min-width: 70px;
+}
+.date-caption {
+  font-size: 12px;
+  color: var(--green);
+  margin: 12px 0;
+}
+.modal-badge {
+  background: #f0ebe1;
+  color: #77613c;
+  margin-left: 4px;
+}
+#notes-context {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

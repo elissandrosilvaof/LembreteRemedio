@@ -16,3 +16,9 @@ Defina tipo, duracao e valor por atendimento.
 
 Exporte backups regularmente. Desinstalar apaga os dados locais.
 Leia o README.md para orientacoes de assinatura e distribuicao.
+
+VERSAO 1.1:
+Cada atendimento inclui modalidade e bloco Anamnese.
+Em Relatorios, selecione dia, mes ou ano e paciente (ou todos).
+Exporte PDF ou CSV. Marque Incluir Anamnese somente quando desejar.
+Faca backup antes de atualizar e nao desinstale sem preservar seus dados.

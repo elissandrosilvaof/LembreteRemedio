@@ -45,6 +45,7 @@
       <nav class="tabs" aria-label="Seções">
         <button data-tab="agenda" class="active">Minha agenda</button
         ><button data-tab="people" id="people-tab">Cadastros</button
+        ><button data-tab="reports">Relatórios</button
         ><button data-tab="backup">Backup</button>
       </nav>
       <section id="agenda" class="panel tab-view">
@@ -64,6 +65,7 @@
             </select></label
           >
         </div>
+        <p id="agenda-date-caption" class="date-caption"></p>
         <div class="stats">
           <div><strong id="stat-count">0</strong><span>agendados</span></div>
           <div><strong id="stat-done">0</strong><span>concluídos</span></div>
@@ -87,6 +89,63 @@
         /></label>
         <div id="people-list"></div>
       </section>
+      <section id="reports" class="panel tab-view" hidden>
+        <p class="eyebrow">ACOMPANHE SEUS ATENDIMENTOS</p>
+        <h2>Relatórios</h2>
+        <form id="report-form">
+          <div class="fields">
+            <label
+              >Período<select id="report-period">
+                <option value="day">Por dia</option>
+                <option value="month">Por mês</option>
+                <option value="year">Por ano</option>
+              </select></label
+            ><label
+              ><span id="report-value-label">Dia</span
+              ><input id="report-value" type="date" required
+            /></label>
+          </div>
+          <label
+            ><span id="report-person-label">Paciente / aluno</span
+            ><select id="report-person">
+              <option value="all">Todos no mesmo arquivo</option>
+            </select></label
+          >
+          <div class="fields">
+            <label
+              >Modalidade<select id="report-modality">
+                <option value="all">Todas</option>
+              </select></label
+            ><label
+              >Status<select id="report-status">
+                <option value="all">Todos</option>
+                <option value="confirmed">Agendados</option>
+                <option value="completed">Concluídos</option>
+                <option value="cancelled">Cancelados</option>
+              </select></label
+            >
+          </div>
+          <label class="check"
+            ><input id="report-notes" type="checkbox" /> Incluir Anamnese no
+            arquivo</label
+          >
+          <p class="caption">
+            A anamnese fica fora do relatório por padrão. Inclua apenas quando
+            necessário. O arquivo pode conter dados de saúde.
+          </p>
+          <div class="actions">
+            <button id="report-preview" class="primary" disabled>
+              Consultar relatório</button
+            ><button type="button" id="report-pdf" class="secondary" disabled>
+              Salvar PDF</button
+            ><button type="button" id="report-csv" class="secondary" disabled>
+              Salvar planilha CSV
+            </button>
+          </div>
+        </form>
+        <p id="report-error" class="error" role="alert"></p>
+        <div id="report-result" aria-live="polite"></div>
+      </section>
       <section id="backup" class="panel backup tab-view" hidden>
         <p class="eyebrow">SEUS DADOS, COM VOCÊ</p>
         <h2>Uma cópia para ficar tranquilo</h2>
@@ -107,14 +166,15 @@
           />
         </div>
         <p class="caption">
-          O backup contém nomes e telefones. Guarde em local de confiança.
-          Restaurar substitui todos os dados atuais. Desinstalar ou limpar os
-          dados do aplicativo apaga a agenda local.
+          O backup contém nomes, telefones e as anotações de Anamnese. Guarde em
+          local de confiança. Restaurar substitui todos os dados atuais.
+          Desinstalar ou limpar os dados do aplicativo apaga a agenda local.
         </p>
       </section>
       <footer>
         Agenda em Dia · Sua agenda profissional, sempre à mão.<br />Agenda
-        individual. Não inclui prontuário, lembretes ou aulas em grupo.<br /><strong
+        individual, com anotações por atendimento. Não inclui lembretes ou aulas
+        em grupo.<br /><strong
           >Desenvolvido por Elissandro Silva Polidoro</strong
         >
       </footer>
@@ -147,6 +207,24 @@
             id="service-options"
           ></datalist
         ></label>
+        <label
+          >Modalidade do atendimento<select id="modality" required></select
+        ></label>
+        <label
+          >Anamnese<textarea
+            id="anamnesis"
+            rows="5"
+            maxlength="10000"
+            placeholder="Anotações deste atendimento"
+          ></textarea>
+        </label>
+        <label
+          >Status<select id="booking-status">
+            <option value="confirmed">Agendado</option>
+            <option value="completed">Concluído</option>
+            <option value="cancelled">Cancelado</option>
+          </select></label
+        >
         <div class="fields">
           <label
             >Duração (minutos)<input
@@ -179,6 +257,38 @@
         <button class="primary full" id="save" type="submit">
           Salvar agendamento
         </button>
+      </form>
+    </dialog>
+    <dialog id="notes-editor">
+      <form id="notes-form">
+        <div class="heading">
+          <h2>Anamnese</h2>
+          <button
+            type="button"
+            data-close="notes-editor"
+            class="icon"
+            aria-label="Fechar anamnese"
+          >
+            ×
+          </button>
+        </div>
+        <p id="notes-context"></p>
+        <label
+          >Modalidade do atendimento<select
+            id="notes-modality"
+            required
+          ></select></label
+        ><label
+          >Anotações<textarea
+            id="notes-text"
+            rows="10"
+            maxlength="10000"
+            placeholder="Registre as observações deste atendimento"
+          ></textarea>
+        </label>
+        <p id="notes-timestamps" class="caption"></p>
+        <p id="notes-error" class="error" role="alert"></p>
+        <button id="notes-save" class="primary full">Salvar anamnese</button>
       </form>
     </dialog>
     <dialog id="person-editor">
